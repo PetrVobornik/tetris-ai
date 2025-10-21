@@ -1,3 +1,4 @@
 theme: minima
 title: Tetris AI
 author: Petr Voborník
+markdown: kramdown
