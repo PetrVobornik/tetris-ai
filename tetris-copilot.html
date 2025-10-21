@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tetris – jedna stránka</title>
+  <style>
+    :root {
+      --bg: #0f1220;
+      --panel: #1a1f36;
+      --grid: #12162a;
+      --text: #e6e6e6;
+      --accent: #7aa2f7;
+      --good: #7bd389;
+      --warn: #f7c95b;
+      --bad: #ef6b73;
+      --cell: 28px; /* velikost jedné buňky */
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #0b0f1e, var(--bg) 35%, #0b0f1e 100%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .wrap {
+      display: grid;
+      grid-template-columns: auto 240px;
+      gap: 20px;
+      align-items: start;
+    }
+    .board {
+      background: var(--grid);
+      border: 2px solid #232947;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(10, var(--cell));
+      grid-template-rows: repeat(20, var(--cell));
+      gap: 1px;
+      background: #0c1022;
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cell {
+      width: var(--cell);
+      height: var(--cell);
+      background: #0e1327;
+      border-radius: 4px;
+    }
+    .block {
+      width: var(--cell);
+      height: var(--cell);
+      border-radius: 6px;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.35), 0 3px 6px rgba(0,0,0,0.2);
+    }
+
+    /* Barvy tetromin */
+    .I { background: #56c2ff; }
+    .J { background: #4a74ff; }
+    .L { background: #ff9f43; }
+    .O { background: #ffd369; }
+    .S { background: #59d38c; }
+    .T { background: #c26cff; }
+    .Z { background: #ef6b73; }
+
+    .panel {
+      background: var(--panel);
+      border: 2px solid #232947;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    .panel h1 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      letter-spacing: .5px;
+    }
+    .stats {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #12162a;
+      border: 1px solid #232947;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .next {
+      margin-top: 8px;
+    }
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 20px);
+      grid-template-rows: repeat(4, 20px);
+      gap: 2px;
+      background: #12162a;
+      border: 1px solid #232947;
+      border-radius: 8px;
+      padding: 6px;
+      height: auto;
+      width: max-content;
+    }
+    .mini-cell { width: 20px; height: 20px; background: #0e1327; border-radius: 4px; }
+    .mini-block { width: 20px; height: 20px; border-radius: 5px; }
+
+    .controls {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    button {
+      appearance: none;
+      border: 1px solid #2a315a;
+      background: #171c33;
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: #1c2240; }
+    button:active { transform: translateY(1px); }
+    .primary { border-color: #4460f0; background: #2733a8; }
+    .primary:hover { background: #2f3cc6; }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #cbd1f7;
+      opacity: .9;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(10,12,24,.72);
+      backdrop-filter: blur(2px);
+      z-index: 3;
+      border-radius: 6px;
+    }
+    .overlay.show { display: grid; }
+    .dialog {
+      background: #141a33;
+      border: 1px solid #2a315a;
+      border-radius: 12px;
+      padding: 16px 18px;
+      text-align: center;
+      width: 260px;
+    }
+    .dialog h2 { margin: 0 0 8px; font-size: 18px; }
+    .dialog p { margin: 0 0 12px; font-size: 14px; color: #dbe0ff; }
+    .dialog .score { font-size: 22px; color: var(--good); font-weight: 700; }
+
+    @media (max-width: 720px) {
+      .wrap { grid-template-columns: 1fr; }
+      .panel { order: -1; }
+      .grid { margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="board">
+      <div class="grid" id="grid"></div>
+      <div class="overlay" id="overlay">
+        <div class="dialog">
+          <h2>Konec hry</h2>
+          <p>Bloky dosáhly vršku. Zkus to znovu!</p>
+          <div class="score" id="finalScore">Skóre: 0</div>
+          <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
+            <button id="restart" class="primary">Hrát znovu</button>
+            <button id="resume">Pokračovat</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <h1>Tetris</h1>
+      <div class="stats">
+        <div class="stat"><span>Skóre</span><strong id="score">0</strong></div>
+        <div class="stat"><span>Řádky</span><strong id="lines">0</strong></div>
+        <div class="stat"><span>Úroveň</span><strong id="level">1</strong></div>
+      </div>
+      <div class="next">
+        <div style="margin-bottom:6px; font-size:14px;">Další dílek</div>
+        <div class="mini-grid" id="nextGrid"></div>
+      </div>
+      <div class="controls">
+        <button id="start" class="primary">Start</button>
+        <button id="pause">Pauza</button>
+        <button id="hardDrop">Hard drop (Space)</button>
+      </div>
+      <div class="hint">
+        Ovládání: ← → dolů, R = otočit, Space = hard drop. Drž dolů pro rychlejší pád.
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // Konfigurace herní mřížky
+    const COLS = 10;
+    const ROWS = 20;
+    const gridEl = document.getElementById('grid');
+    const overlayEl = document.getElementById('overlay');
+    const finalScoreEl = document.getElementById('finalScore');
+
+    // UI prvky
+    const scoreEl = document.getElementById('score');
+    const linesEl = document.getElementById('lines');
+    const levelEl = document.getElementById('level');
+    const startBtn = document.getElementById('start');
+    const pauseBtn = document.getElementById('pause');
+    const restartBtn = document.getElementById('restart');
+    const resumeBtn = document.getElementById('resume');
+    const hardDropBtn = document.getElementById('hardDrop');
+
+    // Mini náhled dalšího dílku
+    const nextGridEl = document.getElementById('nextGrid');
+
+    // Vykreslení prázdných buněk (background)
+    const backgroundCells = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const div = document.createElement('div');
+        div.className = 'cell';
+        gridEl.appendChild(div);
+        backgroundCells.push(div);
+      }
+    }
+
+    // Stav hry
+    let board = createMatrix(ROWS, COLS, 0); // 0 = prázdno
+    let running = false;
+    let paused = false;
+    let lastTime = 0;
+    let dropCounter = 0;
+    let dropInterval = 800; // ms, mění se podle úrovně
+    let score = 0;
+    let lines = 0;
+    let level = 1;
+
+    // Tetromina definice (matice rotací)
+    const TETROMINOS = {
+      I: [
+        [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+        [[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],
+        [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+        [[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],
+      ],
+      J: [
+        [[1,0,0],[1,1,1],[0,0,0]],
+        [[0,1,1],[0,1,0],[0,1,0]],
+        [[0,0,0],[1,1,1],[0,0,1]],
+        [[0,1,0],[0,1,0],[1,1,0]],
+      ],
+      L: [
+        [[0,0,1],[1,1,1],[0,0,0]],
+        [[0,1,0],[0,1,0],[0,1,1]],
+        [[0,0,0],[1,1,1],[1,0,0]],
+        [[1,1,0],[0,1,0],[0,1,0]],
+      ],
+      O: [
+        [[1,1],[1,1]],
+        [[1,1],[1,1]],
+        [[1,1],[1,1]],
+        [[1,1],[1,1]],
+      ],
+      S: [
+        [[0,1,1],[1,1,0],[0,0,0]],
+        [[0,1,0],[0,1,1],[0,0,1]],
+        [[0,0,0],[0,1,1],[1,1,0]],
+        [[1,0,0],[1,1,0],[0,1,0]],
+      ],
+      T: [
+        [[0,1,0],[1,1,1],[0,0,0]],
+        [[0,1,0],[0,1,1],[0,1,0]],
+        [[0,0,0],[1,1,1],[0,1,0]],
+        [[0,1,0],[1,1,0],[0,1,0]],
+      ],
+      Z: [
+        [[1,1,0],[0,1,1],[0,0,0]],
+        [[0,0,1],[0,1,1],[0,1,0]],
+        [[0,0,0],[1,1,0],[0,1,1]],
+        [[0,1,0],[1,1,0],[1,0,0]],
+      ],
+    };
+    const COLORS = { I:'I', J:'J', L:'L', O:'O', S:'S', T:'T', Z:'Z' };
+
+    // Bag randomizér (7-bag)
+    let bag = [];
+    function nextPieceType() {
+      if (bag.length === 0) bag = shuffle(['I','J','L','O','S','T','Z']);
+      return bag.pop();
+    }
+
+    // Aktuální dílek
+    let current = null;
+    let nextPiece = createPiece(nextPieceType());
+
+    // Mini-grid init
+    for (let i = 0; i < 16; i++) {
+      const d = document.createElement('div');
+      d.className = 'mini-cell';
+      nextGridEl.appendChild(d);
+    }
+
+    // Utility
+    function createMatrix(rows, cols, fill=0) {
+      return Array.from({length: rows}, () => Array(cols).fill(fill));
+    }
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function createPiece(type) {
+      const rotations = TETROMINOS[type];
+      return {
+        type,
+        rot: 0,
+        shape: rotations[0],
+        x: Math.floor(COLS / 2) - Math.ceil(rotations[0][0].length / 2),
+        y: -getTopPadding(rotations[0]),
+      };
+    }
+
+    function getTopPadding(shape) {
+      // počet prázdných řádků nahoře, aby dílek startoval těsně nad boardem
+      let pad = 0;
+      for (let r = 0; r < shape.length; r++) {
+        if (shape[r].every(v => v === 0)) pad++;
+        else break;
+      }
+      return pad;
+    }
+
+    // Vykreslení boardu a dílku
+    function draw() {
+      // Vyčistit dynamické bloky (odstraníme existující .block)
+      Array.from(gridEl.querySelectorAll('.block')).forEach(el => el.remove());
+
+      // Vykreslit zafixované bloky
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (board[r][c]) {
+            spawnBlock(c, r, board[r][c]);
+          }
+        }
+      }
+
+      // Vykreslit aktuální dílek
+      if (current) {
+        const shape = current.shape;
+        for (let r = 0; r < shape.length; r++) {
+          for (let c = 0; c < shape[r].length; c++) {
+            if (shape[r][c]) {
+              const x = current.x + c;
+              const y = current.y + r;
+              if (y >= 0) spawnBlock(x, y, COLORS[current.type]);
+            }
+          }
+        }
+      }
+    }
+
+    function spawnBlock(x, y, cls) {
+      const el = document.createElement('div');
+      el.className = 'block ' + cls;
+      el.style.position = 'absolute';
+      el.style.left = (x * (getCell()+1)) + 'px';
+      el.style.top = (y * (getCell()+1)) + 'px';
+      el.style.width = `var(--cell)`;
+      el.style.height = `var(--cell)`;
+      gridEl.appendChild(el);
+    }
+
+    function getCell() {
+      // Vypočte aktuální px velikost buňky z CSS proměnné
+      const val = getComputedStyle(document.documentElement).getPropertyValue('--cell').trim();
+      return parseInt(val, 10);
+    }
+
+    // Kolize
+    function collides(piece, dx=0, dy=0, rotIndex=piece.rot) {
+      const shape = TETROMINOS[piece.type][rotIndex];
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape[r].length; c++) {
+          if (!shape[r][c]) continue;
+          const x = piece.x + dx + c;
+          const y = piece.y + dy + r;
+          if (x < 0 || x >= COLS || y >= ROWS) return true;
+          if (y >= 0 && board[y][x]) return true;
+        }
+      }
+      return false;
+    }
+
+    // Přilepení dílku do boardu
+    function merge(piece) {
+      const shape = piece.shape;
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape[r].length; c++) {
+          if (shape[r][c]) {
+            const x = piece.x + c;
+            const y = piece.y + r;
+            if (y >= 0) board[y][x] = COLORS[piece.type];
+          }
+        }
+      }
+    }
+
+    // Čištění řádků
+    function sweep() {
+      let cleared = 0;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (board[r].every(v => v)) {
+          board.splice(r, 1);
+          board.unshift(Array(COLS).fill(0));
+          cleared++;
+          r++; // znovu zkontrolovat stejný index po unshiftu
+        }
+      }
+      if (cleared > 0) {
+        lines += cleared;
+        // Skóre dle Tetris guideline (zjednodušeno)
+        const add = [0, 100, 300, 500, 800][cleared] || (cleared * 300);
+        score += add * level;
+        // Úroveň se zvyšuje po každých 10 řádcích
+        const newLevel = Math.floor(lines / 10) + 1;
+        if (newLevel !== level) {
+          level = newLevel;
+          updateSpeed();
+        }
+        updateHUD();
+      }
+    }
+
+    function updateSpeed() {
+      // Snižujeme interval pádu s úrovní, dolní limit ~80ms
+      dropInterval = Math.max(80, 800 - (level - 1) * 60);
+    }
+
+    function updateHUD() {
+      scoreEl.textContent = score;
+      linesEl.textContent = lines;
+      levelEl.textContent = level;
+    }
+
+    // Rotace se základním "wall kick"
+    function rotate(dir=1) {
+      if (!current) return;
+      const oldRot = current.rot;
+      const newRot = (current.rot + dir + 4) % 4;
+      const kicks = [
+        {dx:0, dy:0},
+        {dx:1, dy:0},
+        {dx:-1, dy:0},
+        {dx:0, dy:-1},
+        {dx:2, dy:0},
+        {dx:-2, dy:0},
+      ];
+      for (const k of kicks) {
+        if (!collides(current, k.dx, k.dy, newRot)) {
+          current.rot = newRot;
+          current.shape = TETROMINOS[current.type][current.rot];
+          current.x += k.dx; current.y += k.dy;
+          return;
+        }
+      }
+    }
+
+    // Posun/Drop
+    function move(dx) {
+      if (!current) return;
+      if (!collides(current, dx, 0)) {
+        current.x += dx;
+      }
+    }
+    function softDrop() {
+      if (!current) return;
+      if (!collides(current, 0, 1)) {
+        current.y += 1;
+        score += 1; // malé body za soft drop
+        updateHUD();
+      } else {
+        lockPiece();
+      }
+    }
+    function hardDrop() {
+      if (!current) return;
+      let dropped = 0;
+      while (!collides(current, 0, 1)) {
+        current.y += 1; dropped++;
+      }
+      score += dropped * 2; // odměna za hard drop
+      updateHUD();
+      lockPiece();
+    }
+
+    function lockPiece() {
+      merge(current);
+      sweep();
+      spawnNext();
+      if (collides(current, 0, 0)) {
+        gameOver();
+      }
+    }
+
+    function spawnNext() {
+      current = nextPiece;
+      nextPiece = createPiece(nextPieceType());
+      drawNext();
+    }
+
+    function drawNext() {
+      // vyčistit mini-grid
+      Array.from(nextGridEl.querySelectorAll('.mini-block')).forEach(el => el.remove());
+      const shape = TETROMINOS[nextPiece.type][0];
+      const w = shape[0].length;
+      const h = shape.length;
+      const offsetX = Math.floor((4 - w) / 2);
+      const offsetY = Math.floor((4 - h) / 2);
+      for (let r = 0; r < h; r++) {
+        for (let c = 0; c < w; c++) {
+          if (shape[r][c]) {
+            const el = document.createElement('div');
+            el.className = 'mini-block ' + COLORS[nextPiece.type];
+            el.style.gridColumn = (offsetX + c + 1);
+            el.style.gridRow = (offsetY + r + 1);
+            nextGridEl.appendChild(el);
+          }
+        }
+      }
+    }
+
+    // Hlavní smyčka
+    function update(time = 0) {
+      if (!running || paused) return;
+      const delta = time - lastTime;
+      lastTime = time;
+      dropCounter += delta;
+
+      if (dropCounter >= dropInterval) {
+        softDrop();
+        dropCounter = 0;
+      }
+
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    function startGame() {
+      board = createMatrix(ROWS, COLS, 0);
+      score = 0; lines = 0; level = 1;
+      updateSpeed();
+      updateHUD();
+      current = createPiece(nextPieceType());
+      nextPiece = createPiece(nextPieceType());
+      drawNext();
+      running = true; paused = false; dropCounter = 0; lastTime = 0;
+      overlayEl.classList.remove('show');
+      requestAnimationFrame(update);
+    }
+
+    function pauseGame() {
+      paused = !paused;
+      overlayEl.classList.toggle('show', paused);
+      if (!paused) {
+        lastTime = performance.now();
+        requestAnimationFrame(update);
+      } else {
+        finalScoreEl.textContent = `Skóre: ${score}`;
+      }
+    }
+
+    function gameOver() {
+      running = false;
+      overlayEl.classList.add('show');
+      finalScoreEl.textContent = `Skóre: ${score}`;
+    }
+
+    // Ovládání klávesnicí
+    window.addEventListener('keydown', (e) => {
+      if (!running || paused) return;
+      switch (e.key) {
+        case 'ArrowLeft': move(-1); break;
+        case 'ArrowRight': move(1); break;
+        case 'ArrowDown': softDrop(); break;
+        case 'ArrowUp': rotate(1); break;
+        case ' ': e.preventDefault(); hardDrop(); break;
+      }
+      draw();
+    });
+
+    // Ovládací tlačítka
+    startBtn.addEventListener('click', startGame);
+    pauseBtn.addEventListener('click', pauseGame);
+    restartBtn.addEventListener('click', startGame);
+    resumeBtn.addEventListener('click', () => { paused = false; overlayEl.classList.remove('show'); requestAnimationFrame(update); });
+    hardDropBtn.addEventListener('click', hardDrop);
+
+    // Načtení: připrav prázdnou scenérii
+    drawNext();
+    draw();
+
+    // Tip: přidáme auto-repeat pro držení dolů
+    let downHeld = false;
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') downHeld = true;
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowDown') downHeld = false;
+    });
+
+    // Mírné zrychlení při držení dolů (mimo hlavní interval)
+    setInterval(() => {
+      if (running && !paused && downHeld) {
+        softDrop();
+        draw();
+      }
+    }, 50);
+  </script>
+</body>
+</html>
+```
