@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris</title>
+    <!-- Tailwind CSS pro rychlý a responzivní design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font pro retro vzhled -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Aplikace retro fontu na celou stránku */
+        body {
+            font-family: 'Press Start 2P', cursive;
+            touch-action: none; /* Zabrání posouvání stránky při dotykovém ovládání hry */
+        }
+        /* Vlastní styly pro lepší vzhled herních prvků */
+        .game-board {
+            border: 4px solid #374151;
+            box-shadow: 0 0 0 4px #9ca3af;
+        }
+        .ui-panel {
+            background-color: rgba(17, 24, 39, 0.8);
+            border: 2px solid #4b5563;
+        }
+        .game-button {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px #6b7280;
+        }
+        .game-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px #6b7280;
+        }
+        /* Styly pro modální okno (konec hry a pauza) */
+        .modal {
+            background-color: rgba(0, 0, 0, 0.75);
+            font-family: 'Press Start 2P', cursive;
+        }
+    </style>
+</head>
+<body class="bg-gray-800 text-white flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
+
+    <h1 class="text-4xl md:text-5xl mb-4 text-cyan-400" style="text-shadow: 2px 2px #ef4444;">TETRIS</h1>
+
+    <div class="flex flex-col md:flex-row gap-4 items-start">
+        
+        <!-- Levý panel: Další kostka a úroveň -->
+        <div class="w-full md:w-auto flex md:flex-col gap-4">
+            <div class="ui-panel p-4 rounded-lg w-1/2 md:w-48 text-center">
+                <h2 class="text-lg mb-2 text-yellow-400">DALŠÍ</h2>
+                <canvas id="next-piece-canvas" width="120" height="120" class="mx-auto bg-gray-900 rounded"></canvas>
+            </div>
+            <div class="ui-panel p-4 rounded-lg w-1/2 md:w-48 text-center">
+                <h2 class="text-lg mb-2 text-yellow-400">ÚROVEŇ</h2>
+                <p id="level" class="text-3xl">0</p>
+            </div>
+        </div>
+
+        <!-- Herní plocha -->
+        <div class="relative">
+            <canvas id="tetris-canvas" class="game-board rounded-lg"></canvas>
+            <!-- Modální okno pro zprávy (Konec hry, Pauza) -->
+            <div id="modal" class="absolute inset-0 flex-col items-center justify-center text-center hidden">
+                <h2 id="modal-title" class="text-4xl text-red-500 mb-2"></h2>
+                <p id="modal-text" class="text-lg"></p>
+            </div>
+        </div>
+        
+        <!-- Pravý panel: Skóre a řádky -->
+        <div class="w-full md:w-auto flex md:flex-col gap-4">
+            <div class="ui-panel p-4 rounded-lg w-1/2 md:w-48 text-center">
+                <h2 class="text-lg mb-2 text-yellow-400">SKÓRE</h2>
+                <p id="score" class="text-3xl">0</p>
+            </div>
+             <div class="ui-panel p-4 rounded-lg w-1/2 md:w-48 text-center">
+                <h2 class="text-lg mb-2 text-yellow-400">ŘÁDKY</h2>
+                <p id="lines" class="text-3xl">0</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tlačítka a instrukce -->
+    <div class="mt-4 text-center">
+        <button id="start-button" class="game-button bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg text-lg">START</button>
+        <p class="mt-4 text-xs md:text-sm text-gray-400">
+            Šipky = Pohyb, ↑ = Rotace, Mezerník = Pád<br>P = Pauza, R = Restart
+        </p>
+    </div>
+
+
+    <script>
+        const canvas = document.getElementById('tetris-canvas');
+        const context = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('next-piece-canvas');
+        const nextContext = nextCanvas.getContext('2d');
+
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const linesElement = document.getElementById('lines');
+        const startButton = document.getElementById('start-button');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalText = document.getElementById('modal-text');
+
+        // Nastavení herní plochy
+        const COLS = 10;
+        const ROWS = 20;
+        const BLOCK_SIZE = 30;
+        const NEXT_PIECE_BLOCK_SIZE = 20;
+
+        canvas.width = COLS * BLOCK_SIZE;
+        canvas.height = ROWS * BLOCK_SIZE;
+        
+        context.scale(BLOCK_SIZE, BLOCK_SIZE);
+        nextContext.scale(NEXT_PIECE_BLOCK_SIZE, NEXT_PIECE_BLOCK_SIZE);
+
+        // Barvy pro kostky
+        const COLORS = [
+            null,
+            '#FF0D72', // T
+            '#0DC2FF', // I
+            '#0DFF72', // O
+            '#F538FF', // L
+            '#FF8E0D', // J
+            '#FFE138', // S
+            '#3877FF', // Z
+        ];
+
+        // Tvary kostek (tetromin)
+        const PIECES = [
+            [], // Prázdný pro snadnější indexování
+            [[1, 1, 1], [0, 1, 0]], // T
+            [[2, 2, 2, 2]], // I
+            [[3, 3], [3, 3]], // O
+            [[4, 0, 0], [4, 4, 4]], // L
+            [[0, 0, 5], [5, 5, 5]], // J
+            [[0, 6, 6], [6, 6, 0]], // S
+            [[7, 7, 0], [0, 7, 7]], // Z
+        ];
+
+        let board = createBoard();
+        let player = {
+            pos: { x: 0, y: 0 },
+            matrix: null,
+            score: 0,
+            level: 0,
+            lines: 0,
+        };
+        let nextPiece = null;
+        
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+        let isGameOver = false;
+        let isPaused = false;
+        let animationFrameId;
+
+        // --- HLAVNÍ FUNKCE ---
+
+        function createBoard() {
+            // Vytvoří 2D pole (matici) reprezentující herní plochu
+            return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+        }
+
+        function createPiece(type) {
+            return type;
+        }
+
+        function playerReset() {
+            // Resetuje pozici a tvar hráče
+            const pieces = 'TIOJLSZ';
+            
+            if (nextPiece === null) {
+                // Při prvním spuštění vygenerujeme i další kostku
+                 const nextRandPiece = pieces[Math.floor(Math.random() * pieces.length)];
+                 nextPiece = createPiece(PIECES[pieces.indexOf(nextRandPiece) + 1]);
+            }
+            
+            player.matrix = nextPiece;
+            player.pos.y = 0;
+            player.pos.x = Math.floor(COLS / 2) - Math.floor(player.matrix[0].length / 2);
+
+            const nextRandPiece = pieces[Math.floor(Math.random() * pieces.length)];
+            nextPiece = createPiece(PIECES[pieces.indexOf(nextRandPiece) + 1]);
+
+            if (checkCollision(board, player)) {
+                isGameOver = true;
+            }
+            drawNextPiece();
+        }
+
+        function update(time = 0) {
+            if (isGameOver || isPaused) {
+                if (isGameOver) gameOver();
+                return;
+            }
+
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+
+            if (dropCounter > dropInterval) {
+                playerDrop();
+            }
+
+            draw();
+            animationFrameId = requestAnimationFrame(update);
+        }
+
+        // --- KRESLÍCÍ FUNKCE ---
+
+        function draw() {
+            // Vykreslí vše na canvas
+            context.fillStyle = '#111827'; // Tmavě modré pozadí
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawMatrix(board, { x: 0, y: 0 }); // Vykreslí "zamčené" kostky
+            drawMatrix(player.matrix, player.pos); // Vykreslí padající kostku
+        }
+
+        function drawMatrix(matrix, offset) {
+            if (!matrix) return; // FIX: Zabrání chybě při prvním spuštění
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        context.fillStyle = COLORS[value];
+                        context.fillRect(x + offset.x, y + offset.y, 1, 1);
+                        // Přidání malého vnitřního stínu pro 3D efekt
+                        context.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                        context.fillRect(x + offset.x + 0.1, y + offset.y + 0.1, 0.8, 0.8);
+                        context.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                        context.fillRect(x + offset.x + 0.2, y + offset.y + 0.2, 0.6, 0.6);
+                    }
+                });
+            });
+        }
+        
+        function drawNextPiece() {
+            nextContext.fillStyle = '#111827';
+            nextContext.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+            const piece = nextPiece;
+            
+            if (!piece) return; // FIX: Zabrání chybě při prvním spuštění
+
+            // Bezpečnější způsob, jak najít barvu
+            const colorValue = piece.flat().find(v => v !== 0);
+            if (!colorValue) return;
+            
+            nextContext.fillStyle = COLORS[colorValue];
+
+            // Centrování kostky v náhledu
+            const offsetX = (6 - piece[0].length) / 2;
+            const offsetY = (6 - piece.length) / 2;
+
+            piece.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        nextContext.fillRect(x + offsetX, y + offsetY, 1, 1);
+                    }
+                });
+            });
+        }
+        
+        // --- LOGIKA HRY ---
+
+        function merge(board, player) {
+            // "Vloží" padající kostku do herní desky, když dopadne
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        board[y + player.pos.y][x + player.pos.x] = value;
+                    }
+                });
+            });
+        }
+
+        function checkCollision(board, player) {
+            // Kontroluje kolizi kostky se stěnami nebo s již položenými kostkami
+            const { matrix, pos } = player;
+            if (!matrix) return false;
+            for (let y = 0; y < matrix.length; y++) {
+                for (let x = 0; x < matrix[0].length; x++) {
+                    if (
+                        matrix[y][x] !== 0 &&
+                        (board[y + pos.y] && board[y + pos.y][x + pos.x]) !== 0
+                    ) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function clearLines() {
+            // Kontroluje a odstraňuje plné řádky
+            let clearedLines = 0;
+            outer: for (let y = board.length - 1; y > 0; --y) {
+                for (let x = 0; x < board[y].length; ++x) {
+                    if (board[y][x] === 0) {
+                        continue outer;
+                    }
+                }
+
+                const row = board.splice(y, 1)[0].fill(0);
+                board.unshift(row);
+                ++y;
+                clearedLines++;
+            }
+            
+            if(clearedLines > 0) {
+                // Aktualizace skóre a úrovně
+                const linePoints = [0, 40, 100, 300, 1200];
+                player.score += linePoints[clearedLines] * (player.level + 1);
+                player.lines += clearedLines;
+                player.level = Math.floor(player.lines / 10);
+                // Zrychlení hry
+                dropInterval = 1000 - (player.level * 50);
+                if(dropInterval < 100) dropInterval = 100;
+            }
+        }
+        
+        function updateUI() {
+            scoreElement.innerText = player.score;
+            levelElement.innerText = player.level;
+            linesElement.innerText = player.lines;
+        }
+
+        function gameOver() {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modalTitle.innerText = 'KONEC HRY';
+            modalText.innerText = `Skóre: ${player.score}`;
+            startButton.innerText = 'HRÁT ZNOVU';
+        }
+
+        function togglePause() {
+             if (isGameOver) return;
+             isPaused = !isPaused;
+             if (isPaused) {
+                 cancelAnimationFrame(animationFrameId);
+                 animationFrameId = null;
+                 modal.classList.remove('hidden');
+                 modal.classList.add('flex');
+                 modalTitle.innerText = 'PAUZA';
+                 modalText.innerText = '';
+                 startButton.innerText = 'POKRAČOVAT';
+             } else {
+                 modal.classList.add('hidden');
+                 modal.classList.remove('flex');
+                 startButton.innerText = 'PAUZA';
+                 update();
+             }
+        }
+        
+        function startGame() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            isGameOver = false;
+            isPaused = false;
+            board = createBoard();
+            player.score = 0;
+            player.level = 0;
+            player.lines = 0;
+            dropInterval = 1000;
+            nextPiece = null;
+            playerReset();
+            updateUI();
+            modal.classList.add('hidden');
+            startButton.innerText = 'PAUZA';
+            update();
+        }
+        
+        // --- OVLÁDÁNÍ ---
+        
+        function playerMove(dir) {
+            player.pos.x += dir;
+            if (checkCollision(board, player)) {
+                player.pos.x -= dir;
+            }
+        }
+
+        function playerDrop() {
+            player.pos.y++;
+            if (checkCollision(board, player)) {
+                player.pos.y--;
+                merge(board, player);
+                clearLines();
+                updateUI();
+                playerReset();
+            }
+            dropCounter = 0;
+        }
+        
+        function hardDrop() {
+            while (!checkCollision(board, player)) {
+                player.pos.y++;
+            }
+            player.pos.y--;
+            merge(board, player);
+            clearLines();
+            updateUI();
+            playerReset();
+            dropCounter = 0;
+        }
+
+        function playerRotate() {
+            const originalMatrix = player.matrix; // Uložíme původní tvar
+            const originalPos = player.pos.x;
+            let offset = 1;
+            
+            const rotatedMatrix = rotate(player.matrix); // Vytvoříme novou otočenou matici
+            player.matrix = rotatedMatrix; // Dočasně ji přiřadíme hráči
+
+            // Kontrola kolize a "wall kick"
+            while (checkCollision(board, player)) {
+                player.pos.x += offset;
+                offset = -(offset + (offset > 0 ? 1 : -1));
+                
+                // Pokud se posunem nepodaří najít platnou pozici, vrátíme změny
+                if (Math.abs(offset) > player.matrix[0].length) {
+                    player.matrix = originalMatrix; // Vrácení původního tvaru
+                    player.pos.x = originalPos;   // Vrácení původní pozice
+                    return;
+                }
+            }
+        }
+
+        function rotate(matrix) {
+            // Nová, robustnější funkce pro rotaci, která vrací novou matici
+            const newMatrix = [];
+            for (let y = 0; y < matrix[0].length; y++) {
+                const newRow = [];
+                for (let x = matrix.length - 1; x >= 0; x--) {
+                    newRow.push(matrix[x][y]);
+                }
+                newMatrix.push(newRow);
+            }
+            return newMatrix;
+        }
+
+        // Event Listeners
+        document.addEventListener('keydown', event => {
+            if(isPaused && event.key !== 'p' && event.key !== 'P') return;
+            if(isGameOver && event.key.toLowerCase() !== 'r') return;
+
+            if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
+                playerMove(-1);
+            } else if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
+                playerMove(1);
+            } else if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') {
+                playerDrop();
+            } else if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') {
+                playerRotate();
+            } else if (event.code === 'Space') {
+                event.preventDefault(); // Zabrání posunu stránky
+                hardDrop();
+            } else if (event.key.toLowerCase() === 'p') {
+                togglePause();
+            } else if (event.key.toLowerCase() === 'r') {
+                startGame();
+            }
+        });
+
+        startButton.addEventListener('click', () => {
+             if (isGameOver) {
+                 startGame();
+             } else if (animationFrameId) { // Běží hra?
+                 togglePause();
+             } else if (isPaused) { // Je pauza?
+                 togglePause();
+             } else { // Hra neběží a není pauza
+                 startGame();
+             }
+        });
+        
+        // --- DOTYKOVÉ OVLÁDÁNÍ PRO MOBILNÍ ZAŘÍZENÍ ---
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchMoveX = 0;
+        let touchMoveY = 0;
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchMoveX = e.touches[0].clientX; // Inicializace pro detekci klepnutí
+            touchMoveY = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isPaused || isGameOver) return;
+            touchMoveX = e.touches[0].clientX;
+            touchMoveY = e.touches[0].clientY;
+            
+            const diffX = touchMoveX - touchStartX;
+            
+            // Pohyb do stran
+            if (Math.abs(diffX) > BLOCK_SIZE) {
+                if (diffX > 0) {
+                    playerMove(1);
+                } else {
+                    playerMove(-1);
+                }
+                touchStartX = touchMoveX; // Reset pozice pro plynulý pohyb
+                touchStartY = touchMoveY;
+            }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (isPaused || isGameOver) return;
+
+            const diffX = touchMoveX - touchStartX;
+            const diffY = touchMoveY - touchStartY;
+
+            if (Math.abs(diffX) < 20 && Math.abs(diffY) < 20) {
+                // Klepnutí - rotace
+                playerRotate();
+            } else if (diffY > BLOCK_SIZE * 2 && Math.abs(diffY) > Math.abs(diffX)) {
+                 // Rychlé přejetí dolů - tvrdý pád
+                 hardDrop();
+            } else if (diffY > BLOCK_SIZE && Math.abs(diffY) > Math.abs(diffX)) {
+                // Pomalé přejetí dolů - zrychlení pádu
+                playerDrop();
+            }
+
+            // Reset
+            touchStartX = 0;
+            touchStartY = 0;
+            touchMoveX = 0;
+            touchMoveY = 0;
+        });
+        
+        // První inicializace
+        board = createBoard();
+        draw();
+    </script>
+</body>
+</html>
+
