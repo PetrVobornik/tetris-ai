@@ -5,6 +5,6 @@ Prompt: *Program a Tetris game in HTML+CSS+JS within a single page/file.*
 
 * [Claude](tetris-claude.html)
 * [Perplexity](tetris-perplexity.html)
-* Gemini
-* Canva
-* ChatGPT
+* [Gemini](tetris-gemini.html)
+* [Canva](tetris-canva.html)
+* [ChatGPT](tetris-chatgpt.html)
