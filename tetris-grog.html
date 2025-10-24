@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title>Tetris</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+    #game-container {
+      text-align: center;
+    }
+    #gameCanvas {
+      border: 2px solid black;
+      background-color: #fff;
+    }
+    #score, #game-over {
+      font-size: 24px;
+      margin: 10px;
+    }
+    #game-over {
+      display: none;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas" width="300" height="600"></canvas>
+    <div id="score">Skóre: 0</div>
+    <div id="game-over">Konec hry!</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const gameOverElement = document.getElementById('game-over');
+
+    const GRID_SIZE = 30;
+    const COLS = canvas.width / GRID_SIZE;
+    const ROWS = canvas.height / GRID_SIZE;
+    let board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+    let score = 0;
+    let gameOver = false;
+    let currentPiece = null;
+    let lastTime = 0;
+    let dropCounter = 0;
+    const DROP_INTERVAL = 1000;
+
+    const PIECES = [
+      [[1, 1, 1, 1]], // I
+      [[1, 1], [1, 1]], // O
+      [[1, 1, 1], [0, 1, 0]], // T
+      [[1, 1, 1], [1, 0, 0]], // L
+      [[1, 1, 1], [0, 0, 1]], // J
+      [[1, 1, 0], [0, 1, 1]], // S
+      [[0, 1, 1], [1, 1, 0]], // Z
+    ];
+
+    const COLORS = [
+      'cyan', 'yellow', 'purple', 'orange', 'blue', 'green', 'red'
+    ];
+
+    function createPiece() {
+      const type = Math.floor(Math.random() * PIECES.length);
+      return {
+        shape: PIECES[type],
+        color: COLORS[type],
+        x: Math.floor((COLS - PIECES[type][0].length) / 2),
+        y: 0
+      };
+    }
+
+    function drawSquare(x, y, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
+      ctx.strokeStyle = 'black';
+      ctx.strokeRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
+    }
+
+    function drawBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (board[y][x]) {
+            drawSquare(x, y, board[y][x]);
+          }
+        }
+      }
+    }
+
+    function drawPiece(piece) {
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            drawSquare(piece.x + x, piece.y + y, piece.color);
+          }
+        }
+      }
+    }
+
+    function collide(piece) {
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            const boardX = piece.x + x;
+            const boardY = piece.y + y;
+            if (
+              boardX < 0 ||
+              boardX >= COLS ||
+              boardY >= ROWS ||
+              (boardY >= 0 && board[boardY][boardX])
+            ) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    function mergePiece(piece) {
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            board[piece.y + y][piece.x + x] = piece.color;
+          }
+        }
+      }
+    }
+
+    function clearLines() {
+      let linesCleared = 0;
+      for (let y = ROWS - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell !== 0)) {
+          board.splice(y, 1);
+          board.unshift(Array(COLS).fill(0));
+          linesCleared++;
+          y++;
+        }
+      }
+      if (linesCleared > 0) {
+        score += linesCleared * 100;
+        scoreElement.textContent = `Skóre: ${score}`;
+      }
+    }
+
+    function rotatePiece(piece) {
+      const newShape = piece.shape[0].map((_, i) =>
+        piece.shape.map(row => row[i]).reverse()
+      );
+      const newPiece = { ...piece, shape: newShape };
+      if (!collide(newPiece)) {
+        piece.shape = newShape;
+      }
+    }
+
+    function movePiece(dx, dy) {
+      currentPiece.x += dx;
+      currentPiece.y += dy;
+      if (collide(currentPiece)) {
+        currentPiece.x -= dx;
+        currentPiece.y -= dy;
+        return false;
+      }
+      return true;
+    }
+
+    function dropPiece() {
+      if (!movePiece(0, 1)) {
+        mergePiece(currentPiece);
+        clearLines();
+        currentPiece = createPiece();
+        if (collide(currentPiece)) {
+          gameOver = true;
+          gameOverElement.style.display = 'block';
+        }
+      }
+    }
+
+    function hardDrop() {
+      while (movePiece(0, 1)) {
+        // Pokračuj v pohybu dolů, dokud nenarazíš na překážku
+      }
+      mergePiece(currentPiece);
+      clearLines();
+      currentPiece = createPiece();
+      if (collide(currentPiece)) {
+        gameOver = true;
+        gameOverElement.style.display = 'block';
+      }
+    }
+
+    function gameLoop(time = 0) {
+      if (gameOver) return;
+      const deltaTime = time - lastTime;
+      lastTime = time;
+      dropCounter += deltaTime;
+      if (dropCounter > DROP_INTERVAL) {
+        dropPiece();
+        dropCounter = 0;
+      }
+      drawBoard();
+      drawPiece(currentPiece);
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener('keydown', event => {
+      if (gameOver) return;
+      switch (event.key) {
+        case 'ArrowLeft':
+          movePiece(-1, 0);
+          break;
+        case 'ArrowRight':
+          movePiece(1, 0);
+          break;
+        case 'ArrowDown':
+          dropPiece();
+          break;
+        case 'ArrowUp':
+          rotatePiece(currentPiece);
+          break;
+        case ' ':
+          hardDrop();
+          break;
+      }
+    });
+
+    currentPiece = createPiece();
+    gameLoop();
+  </script>
+</body>
+</html>
