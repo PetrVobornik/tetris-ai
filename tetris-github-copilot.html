@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tetris – HTML/CSS/JS (jedna stránka)</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1a2f;
+      --accent:#4cc9f0;
+      --grid:#1b2945;
+      --text:#e6eefc;
+      --muted:#9bb1d1;
+      --btn:#223355;
+      --btn-hover:#2b3f6a;
+      --danger:#ff4d6d;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      height:100%;
+      margin:0;
+      background: radial-gradient(1200px 800px at 20% -10%, #14213d 0%, #0b1220 50%, #06101e 100%);
+      color:var(--text);
+      font: 500 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+    .wrap{
+      max-width: 980px;
+      margin: 24px auto;
+      padding: 16px;
+    }
+    .title{
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    h1{
+      font-size: clamp(20px, 4vw, 28px);
+      margin:0;
+      letter-spacing: .5px;
+    }
+    .hint{
+      color:var(--muted);
+      font-size:14px;
+    }
+    .game{
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+    }
+    .board{
+      position:relative;
+      background: #081022;
+      border: 2px solid #203257;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 50px rgba(76,201,240,.08);
+    }
+    canvas{
+      display:block;
+      image-rendering: pixelated;
+      width: 300px;
+      height: 600px;
+      border-radius: 8px;
+    }
+    .side{
+      flex:1 1 320px;
+      min-width:260px;
+      background: var(--panel);
+      border: 1px solid #1f2a47;
+      border-radius: 10px;
+      padding: 12px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25), inset 0 0 30px rgba(76,201,240,.05);
+    }
+    .stats{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:8px 12px;
+      align-items:center;
+      background: rgba(255,255,255,.02);
+      border: 1px solid #243357;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .stats label{
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .stats .val{
+      text-align:right;
+      font-weight:700;
+      font-variant-numeric: tabular-nums;
+    }
+    .panels{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    .panel{
+      background: rgba(255,255,255,.02);
+      border: 1px solid #243357;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .panel h3{
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight:600;
+    }
+    .mini{
+      width: 120px;
+      height: 120px;
+      background:#081022;
+      border:1px solid #203257;
+      border-radius: 6px;
+      display:block;
+      margin:auto;
+    }
+    .buttons{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    button{
+      background: var(--btn);
+      color: var(--text);
+      border: 1px solid #2a3b61;
+      border-bottom: 2px solid #1a2744;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight:700;
+      letter-spacing:.2px;
+      cursor:pointer;
+      transition: .15s background-color ease, .15s transform ease;
+    }
+    button:hover{ background: var(--btn-hover); }
+    button:active{ transform: translateY(1px); }
+    .danger{ background: #5c2132; border-color:#7a2b40; }
+    .danger:hover{ background:#7a2b40; }
+    .kbd{
+      display:inline-block;
+      background:#101c35;
+      border:1px solid #22345e;
+      color:var(--text);
+      border-radius:6px;
+      padding:2px 6px;
+      font-weight:700;
+      font-size:12px;
+      margin-right:4px;
+    }
+    .overlay{
+      position:absolute;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background: rgba(5,12,24,.6);
+      backdrop-filter: blur(2px);
+      border-radius:8px;
+      z-index:3;
+      text-align:center;
+    }
+    .overlay.visible{ display:flex; }
+    .overlay .box{
+      background: #0f1a2f;
+      border:1px solid #26406f;
+      border-radius:10px;
+      padding:16px 20px;
+      min-width: 70%;
+      box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 0 40px rgba(76,201,240,.06);
+    }
+    .overlay h2{ margin:0 0 6px 0; }
+    .overlay p{ margin:0; color:var(--muted); }
+
+    /* On-screen controls (mobile friendly) */
+    .touch{
+      display:grid;
+      grid-template-columns: repeat(6,1fr);
+      gap:8px;
+      margin-top:4px;
+    }
+    .touch button{ padding:12px 8px; font-size:14px; }
+    @media (max-width: 860px){
+      .game{ flex-direction: column; align-items: center; }
+      .side{ width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">
+      <h1>Tetris</h1>
+      <div class="hint">Ovládání: <span class="kbd">←</span><span class="kbd">→</span> pohyb, <span class="kbd">↓</span> rychlý pád, <span class="kbd">Z</span>/<span class="kbd">X</span>/<span class="kbd">↑</span> rotace, <span class="kbd">Space</span> tvrdý pád, <span class="kbd">Shift</span> držet, <span class="kbd">P</span> pauza, <span class="kbd">R</span> restart.</div>
+    </div>
+
+    <div class="game">
+      <div class="board">
+        <canvas id="board" width="300" height="600" aria-label="Hrací plocha"></canvas>
+        <div id="overlay" class="overlay">
+          <div class="box">
+            <h2 id="overlayTitle">Pauza</h2>
+            <p id="overlayText">Stiskněte P pro pokračování</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="stats">
+          <label>Skóre</label><div id="score" class="val">0</div>
+          <label>Úroveň</label><div id="level" class="val">1</div>
+          <label>Řádky</label><div id="lines" class="val">0</div>
+        </div>
+
+        <div class="panels">
+          <div class="panel">
+            <h3>Další</h3>
+            <canvas id="next" class="mini" width="120" height="120"></canvas>
+          </div>
+          <div class="panel">
+            <h3>Držet</h3>
+            <canvas id="hold" class="mini" width="120" height="120"></canvas>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button id="pauseBtn">Pauza (P)</button>
+          <button id="restartBtn" class="danger">Restart (R)</button>
+        </div>
+
+        <div class="panel">
+          <h3>Ovládání (dotyk)</h3>
+          <div class="touch">
+            <button data-act="left">←</button>
+            <button data-act="rotL">Z ↺</button>
+            <button data-act="rotR">X ↻</button>
+            <button data-act="rotU">↑ ↻</button>
+            <button data-act="hold">Držet</button>
+            <button data-act="right">→</button>
+            <button data-act="soft">↓</button>
+            <button data-act="hard" style="grid-column: span 2;">Space (hard)</button>
+            <button data-act="pause">Pauza</button>
+            <button data-act="restart" class="danger">Restart</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    // Config
+    const COLS = 10, ROWS = 20, CELL = 30;
+    const VIEW_W = COLS * CELL, VIEW_H = ROWS * CELL;
+
+    // Colors by type
+    const COLORS = {
+      I: "#3dd6ff",
+      J: "#3b82f6",
+      L: "#f59e0b",
+      O: "#facc15",
+      S: "#22c55e",
+      T: "#a855f7",
+      Z: "#ef4444"
+    };
+
+    // Base matrices per SRS bounding box size
+    // Sizes: I -> 4x4, O -> 2x2 (no kick changes), others -> 3x3
+    const BASE = {
+      I: {size:4, mat:[
+        [0,0,0,0],
+        [1,1,1,1],
+        [0,0,0,0],
+        [0,0,0,0]
+      ]},
+      J: {size:3, mat:[
+        [1,0,0],
+        [1,1,1],
+        [0,0,0]
+      ]},
+      L: {size:3, mat:[
+        [0,0,1],
+        [1,1,1],
+        [0,0,0]
+      ]},
+      O: {size:2, mat:[
+        [1,1],
+        [1,1]
+      ]},
+      S: {size:3, mat:[
+        [0,1,1],
+        [1,1,0],
+        [0,0,0]
+      ]},
+      T: {size:3, mat:[
+        [0,1,0],
+        [1,1,1],
+        [0,0,0]
+      ]},
+      Z: {size:3, mat:[
+        [1,1,0],
+        [0,1,1],
+        [0,0,0]
+      ]}
+    };
+
+    // SRS kick data
+    // For JLSTZ
+    const KICKS = {
+      JLSTZ: {
+        "0>1":[[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]],
+        "1>0":[[0,0],[1,0],[1,-1],[0,2],[1,2]],
+        "1>2":[[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],
+        "2>1":[[0,0],[1,0],[1,1],[0,-2],[1,-2]],
+        "2>3":[[0,0],[1,0],[1,-1],[0,2],[1,2]],
+        "3>2":[[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]],
+        "3>0":[[0,0],[1,0],[1,1],[0,-2],[1,-2]],
+        "0>3":[[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],
+      },
+      I: {
+        "0>1":[[0,0],[-2,0],[1,0],[-2,-1],[1,2]],
+        "1>0":[[0,0],[2,0],[-1,0],[2,1],[-1,-2]],
+        "1>2":[[0,0],[-1,0],[2,0],[-1,2],[2,-1]],
+        "2>1":[[0,0],[1,0],[-2,0],[1,-2],[-2,1]],
+        "2>3":[[0,0],[2,0],[-1,0],[2,1],[-1,-2]],
+        "3>2":[[0,0],[-2,0],[1,0],[-2,-1],[1,2]],
+        "3>0":[[0,0],[1,0],[-2,0],[1,-2],[-2,1]],
+        "0>3":[[0,0],[-1,0],[2,0],[-1,2],[2,-1]],
+      }
+    };
+
+    // Canvas
+    const boardCanvas = document.getElementById("board");
+    const ctx = boardCanvas.getContext("2d");
+    const nextCanvas = document.getElementById("next");
+    const nctx = nextCanvas.getContext("2d");
+    const holdCanvas = document.getElementById("hold");
+    const hctx = holdCanvas.getContext("2d");
+
+    // UI
+    const elScore = document.getElementById("score");
+    const elLevel = document.getElementById("level");
+    const elLines = document.getElementById("lines");
+    const overlay = document.getElementById("overlay");
+    const overlayTitle = document.getElementById("overlayTitle");
+    const overlayText = document.getElementById("overlayText");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const restartBtn = document.getElementById("restartBtn");
+
+    // Game state
+    const emptyRow = () => Array(COLS).fill(0);
+    let board = Array.from({length: ROWS}, emptyRow);
+    let bag = [];
+    let queue = [];
+    let current = null;
+    let nextType = null;
+    let holdType = null;
+    let canHold = true;
+
+    let score = 0, lines = 0, level = 1;
+    let dropInterval = 1000; // ms
+    let softDrop = false;
+    let paused = false;
+    let gameOver = false;
+
+    let lastTime = 0;
+    let acc = 0;
+
+    function reset() {
+      board = Array.from({length: ROWS}, emptyRow);
+      bag = [];
+      queue = [];
+      score = 0; lines = 0; level = 1;
+      dropInterval = levelToMs(level);
+      holdType = null;
+      canHold = true;
+      gameOver = false;
+      paused = false;
+      overlay.classList.remove("visible");
+
+      refillQueue();
+      nextType = queue.shift();
+      spawnNew();
+      updateUI();
+      drawAll();
+    }
+
+    function levelToMs(lv){
+      // Simple curve: speed up every level
+      return Math.max(1000 - (lv-1)*75, 120);
+    }
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = (Math.random()* (i+1))|0;
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    function refillQueue(){
+      if (bag.length === 0){
+        bag = shuffle(["I","J","L","O","S","T","Z"]);
+      }
+      while(queue.length < 5){
+        if (bag.length === 0) bag = shuffle(["I","J","L","O","S","T","Z"]);
+        queue.push(bag.pop());
+      }
+    }
+
+    function rotateMatrix(mat, dir){
+      const N = mat.length;
+      const res = Array.from({length:N}, ()=>Array(N).fill(0));
+      for(let y=0;y<N;y++){
+        for(let x=0;x<N;x++){
+          if (dir > 0) res[x][N-1-y] = mat[y][x]; // CW
+          else res[N-1-x][y] = mat[y][x]; // CCW
+        }
+      }
+      return res;
+    }
+
+    function getMatrix(type, rotIndex){
+      const base = BASE[type];
+      if (!base) throw new Error("Unknown type "+type);
+      let m = base.mat;
+      // O is rotation-invariant but we still apply for consistency (no kicks)
+      let r = ((rotIndex%4)+4)%4;
+      while(r-- > 0) m = rotateMatrix(m, +1);
+      // Ensure matrix is exactly size x size
+      const N = base.size;
+      // For safety: if rotated result isn't NxN (it is), keep as is
+      return m;
+    }
+
+    function spawnNew(){
+      const type = nextType ?? (queue.length ? queue.shift() : null);
+      if (!type){
+        refillQueue();
+      }
+      if (queue.length < 3) refillQueue();
+      if (nextType == null) nextType = queue.shift();
+
+      const size = BASE[nextType].size;
+      const mat = getMatrix(nextType, 0);
+      const spawnX = Math.floor((COLS - size)/2);
+      const spawnY = -2; // spawn slightly above
+
+      current = {
+        type: nextType,
+        x: spawnX,
+        y: spawnY,
+        rot: 0
+      };
+      canHold = true;
+      // Prepare next
+      if (queue.length < 3) refillQueue();
+      nextType = queue.shift();
+
+      // Game over check (collision immediately)
+      if (collides(current.type, current.x, current.y, current.rot)){
+        gameOver = true;
+        paused = true;
+        showOverlay("Konec hry", "Stiskněte R pro restart");
+      }
+      drawAll();
+    }
+
+    function showOverlay(title, text){
+      overlayTitle.textContent = title;
+      overlayText.textContent = text;
+      overlay.classList.add("visible");
+    }
+    function hideOverlay(){ overlay.classList.remove("visible"); }
+
+    function collides(type, ox, oy, rot){
+      const mat = getMatrix(type, rot);
+      const N = mat.length;
+      for(let y=0;y<N;y++){
+        for(let x=0;x<N;x++){
+          if (!mat[y][x]) continue;
+          const bx = ox + x;
+          const by = oy + y;
+          // allow y < 0 (above board)
+          if (bx < 0 || bx >= COLS || by >= ROWS) return true;
+          if (by >= 0 && board[by][bx]) return true;
+        }
+      }
+      return false;
+    }
+
+    function merge(){
+      const mat = getMatrix(current.type, current.rot);
+      const N = mat.length;
+      for(let y=0;y<N;y++){
+        for(let x=0;x<N;x++){
+          if (!mat[y][x]) continue;
+          const bx = current.x + x;
+          const by = current.y + y;
+          if (by >= 0 && by < ROWS && bx >= 0 && bx < COLS){
+            board[by][bx] = COLORS[current.type];
+          }
+        }
+      }
+    }
+
+    function clearLines(){
+      let cleared = 0;
+      for(let y=ROWS-1; y>=0; ){
+        if (board[y].every(c=> !!c)){
+          // remove line
+          board.splice(y,1);
+          board.unshift(emptyRow());
+          cleared++;
+        } else {
+          y--;
+        }
+      }
+      if (cleared > 0){
+        // Scoring (classic-ish)
+        const lineScores = [0, 100, 300, 500, 800];
+        score += lineScores[cleared] * level;
+        lines += cleared;
+        const newLevel = Math.floor(lines/10) + 1;
+        if (newLevel !== level){
+          level = newLevel;
+          dropInterval = levelToMs(level);
+        }
+        updateUI();
+      }
+    }
+
+    function hold(){
+      if (!canHold || paused || gameOver) return;
+      if (holdType == null){
+        holdType = current.type;
+        spawnNew();
+      } else {
+        const tmp = holdType;
+        holdType = current.type;
+        current = null;
+        // create piece from tmp
+        const size = BASE[tmp].size;
+        const spawnX = Math.floor((COLS - size)/2);
+        const spawnY = -2;
+        current = { type: tmp, x: spawnX, y: spawnY, rot: 0 };
+        if (collides(current.type, current.x, current.y, current.rot)){
+          gameOver = true;
+          paused = true;
+          showOverlay("Konec hry", "Stiskněte R pro restart");
+        }
+      }
+      canHold = false;
+      drawAll();
+    }
+
+    function tryMove(dx, dy){
+      if (paused || gameOver) return false;
+      const nx = current.x + dx;
+      const ny = current.y + dy;
+      if (!collides(current.type, nx, ny, current.rot)){
+        current.x = nx;
+        current.y = ny;
+        return true;
+      }
+      return false;
+    }
+
+    function tryRotate(dir){
+      if (paused || gameOver) return false;
+      const from = current.rot;
+      const to = ((from + (dir>0?1: -1)) % 4 + 4) % 4;
+      const type = current.type;
+
+      // O piece: rotate in place (no kicks)
+      if (type === "O"){
+        if (!collides(type, current.x, current.y, to)){
+          current.rot = to;
+          return true;
+        }
+        return false;
+      }
+
+      // Determine kick table
+      const key = `${from}>${to}`;
+      const kicks = (type === "I" ? KICKS.I[key] : KICKS.JLSTZ[key]) || [[0,0]];
+      for (const [kx, ky] of kicks){
+        const nx = current.x + kx;
+        const ny = current.y + ky;
+        if (!collides(type, nx, ny, to)){
+          current.x = nx;
+          current.y = ny;
+          current.rot = to;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function hardDrop(){
+      if (paused || gameOver) return;
+      let dist = 0;
+      while(tryMove(0,1)) { dist++; }
+      score += dist * 2;
+      lockPiece();
+    }
+
+    function lockPiece(){
+      merge();
+      clearLines();
+      spawnNew();
+      updateUI();
+    }
+
+    function updateUI(){
+      elScore.textContent = score;
+      elLevel.textContent = level;
+      elLines.textContent = lines;
+      // next preview
+      drawMini(nctx, nextType);
+      drawMini(hctx, holdType);
+    }
+
+    function drawGrid(){
+      ctx.fillStyle = "#081022";
+      ctx.fillRect(0,0,VIEW_W,VIEW_H);
+
+      // faint grid
+      ctx.strokeStyle = "#11203f";
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = .35;
+      for(let x=1;x<COLS;x++){
+        ctx.beginPath();
+        ctx.moveTo(x*CELL + .5, 0);
+        ctx.lineTo(x*CELL + .5, VIEW_H);
+        ctx.stroke();
+      }
+      for(let y=1;y<ROWS;y++){
+        ctx.beginPath();
+        ctx.moveTo(0, y*CELL + .5);
+        ctx.lineTo(VIEW_W, y*CELL + .5);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawSquare(x, y, color){
+      const px = x * CELL, py = y * CELL;
+      // cell body
+      ctx.fillStyle = color;
+      ctx.fillRect(px+1, py+1, CELL-2, CELL-2);
+      // gloss
+      ctx.fillStyle = "rgba(255,255,255,.08)";
+      ctx.fillRect(px+1, py+1, CELL-2, Math.max(2, (CELL-2)*0.25));
+      // border
+      ctx.strokeStyle = "rgba(0,0,0,.35)";
+      ctx.strokeRect(px+.5, py+.5, CELL-1, CELL-1);
+    }
+
+    function drawBoard(){
+      for(let y=0;y<ROWS;y++){
+        for(let x=0;x<COLS;x++){
+          const c = board[y][x];
+          if (c) drawSquare(x,y,c);
+        }
+      }
+    }
+
+    function drawPiece(){
+      if (!current) return;
+      const mat = getMatrix(current.type, current.rot);
+      const N = mat.length;
+      for(let y=0;y<N;y++){
+        for(let x=0;x<N;x++){
+          if (!mat[y][x]) continue;
+          const gx = current.x + x;
+          const gy = current.y + y;
+          if (gy < 0) continue; // don't draw above
+          if (gx>=0 && gx<COLS && gy<ROWS){
+            drawSquare(gx, gy, COLORS[current.type]);
+          }
+        }
+      }
+    }
+
+    function drawMini(mctx, type){
+      mctx.fillStyle = "#081022";
+      mctx.fillRect(0,0,120,120);
+      if (!type) return;
+      const mat = getMatrix(type, 0);
+      const N = mat.length;
+
+      // compute block size to fit
+      const pad = 10;
+      const size = Math.floor((120 - pad*2) / N);
+      const total = size * N;
+      const ox = Math.floor((120 - total)/2);
+      const oy = Math.floor((120 - total)/2);
+
+      // draw ghost grid
+      mctx.strokeStyle = "#10203f";
+      mctx.globalAlpha = .3;
+      for(let i=1;i<N;i++){
+        mctx.beginPath();
+        mctx.moveTo(ox + i*size + .5, oy);
+        mctx.lineTo(ox + i*size + .5, oy + total);
+        mctx.stroke();
+
+        mctx.beginPath();
+        mctx.moveTo(ox, oy + i*size + .5);
+        mctx.lineTo(ox + total, oy + i*size + .5);
+        mctx.stroke();
+      }
+      mctx.globalAlpha = 1;
+
+      // draw blocks
+      for(let y=0;y<N;y++){
+        for(let x=0;x<N;x++){
+          if (!mat[y][x]) continue;
+          const px = ox + x*size;
+          const py = oy + y*size;
+          // body
+          mctx.fillStyle = COLORS[type];
+          mctx.fillRect(px+1, py+1, size-2, size-2);
+          // gloss
+          mctx.fillStyle = "rgba(255,255,255,.1)";
+          mctx.fillRect(px+1, py+1, size-2, Math.max(2, (size-2)*0.25));
+          mctx.strokeStyle = "rgba(0,0,0,.35)";
+          mctx.strokeRect(px+.5, py+.5, size-1, size-1);
+        }
+      }
+    }
+
+    function drawAll(){
+      drawGrid();
+      drawBoard();
+      drawPiece();
+      // overlay handled separately
+    }
+
+    // Game loop
+    function update(t){
+      if (!lastTime) lastTime = t;
+      const dt = t - lastTime;
+      lastTime = t;
+
+      if (!paused && !gameOver){
+        acc += dt;
+        const interval = softDrop ? 50 : dropInterval;
+        while(acc >= interval){
+          acc -= interval;
+          // attempt to move down
+          if (!tryMove(0,1)){
+            // piece lands
+            lockPiece();
+          } else {
+            if (softDrop) score += 1; // soft drop points
+          }
+          updateUI();
+        }
+      }
+
+      drawAll();
+      if (paused){
+        overlay.classList.add("visible");
+      } else if (!gameOver){
+        overlay.classList.remove("visible");
+      }
+      requestAnimationFrame(update);
+    }
+
+    // Input
+    const KEYS = new Set();
+    function onKeyDown(e){
+      const k = e.key;
+      if (["ArrowLeft","ArrowRight","ArrowDown","ArrowUp"," "].includes(k)){
+        e.preventDefault();
+      }
+      if (k === "p" || k === "P"){
+        togglePause();
+        return;
+      }
+      if (k === "r" || k === "R"){
+        reset();
+        return;
+      }
+      if (paused || gameOver) return;
+
+      if (k === "ArrowLeft"){ tryMove(-1,0); drawAll(); }
+      else if (k === "ArrowRight"){ tryMove(1,0); drawAll(); }
+      else if (k === "ArrowDown"){ softDrop = true; }
+      else if (k === "z" || k === "Z"){ tryRotate(-1); drawAll(); }
+      else if (k === "x" || k === "X"){ tryRotate(+1); drawAll(); }
+      else if (k === "ArrowUp"){ tryRotate(+1); drawAll(); }
+      else if (k === " "){
+        e.preventDefault();
+        hardDrop();
+      }
+      else if (k === "Shift"){
+        hold();
+      }
+    }
+    function onKeyUp(e){
+      if (e.key === "ArrowDown") softDrop = false;
+    }
+
+    function togglePause(){
+      if (gameOver) return;
+      paused = !paused;
+      if (paused) showOverlay("Pauza", "Stiskněte P pro pokračování");
+      else hideOverlay();
+    }
+
+    // Buttons
+    pauseBtn.addEventListener("click", togglePause);
+    restartBtn.addEventListener("click", reset);
+
+    // Touch buttons
+    document.querySelectorAll(".touch button").forEach(btn=>{
+      const act = btn.getAttribute("data-act");
+      if (act === "soft"){
+        btn.addEventListener("pointerdown", ()=>{ if(!paused&&!gameOver){ softDrop = true; } });
+        btn.addEventListener("pointerup", ()=>{ softDrop = false; });
+        btn.addEventListener("pointerleave", ()=>{ softDrop = false; });
+      } else {
+        btn.addEventListener("click", ()=>{
+          if (act === "left") { tryMove(-1,0); drawAll(); }
+          else if (act === "right") { tryMove(1,0); drawAll(); }
+          else if (act === "rotL") { tryRotate(-1); drawAll(); }
+          else if (act === "rotR" || act === "rotU") { tryRotate(+1); drawAll(); }
+          else if (act === "hard") { hardDrop(); }
+          else if (act === "pause") { togglePause(); }
+          else if (act === "restart") { reset(); }
+          else if (act === "hold") { hold(); drawAll(); }
+        });
+      }
+    });
+
+    // Start
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    reset();
+    requestAnimationFrame(update);
+  })();
+  </script>
+</body>
+</html>
