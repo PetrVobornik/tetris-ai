@@ -15,3 +15,5 @@ Prompt: *Program a Tetris game in HTML+CSS+JS within a single page/file.*
 * [Copilot](tetris-copilot.html){:target="_blank"} (2025-10-20)
 * [GitHub Copilot](tetris-github-copilot.html){:target="_blank"} in VSC, automatically selected the GPT-5 model (2025-10-24)
 * [ChatGPT](tetris-chatgpt.html){:target="_blank"} (2025-10-21)
+
+![Tetris fight](tetris-fight.jpg)
