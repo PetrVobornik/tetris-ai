@@ -1,4 +1,5 @@
-@import "minima/skins/dark", "minima/initialize";
+@import "minima/skins/{{ site.minima.skin | default: 'classic' }}",
+        "minima/initialize";
 
 .site-header {
   display: none !important;
