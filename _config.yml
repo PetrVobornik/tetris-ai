@@ -1,7 +1,6 @@
 remote_theme: jekyll/minima
 
-name: ""
-title: null
+title: Tetris AI
 author:
   name: Petr Voborník
 markdown: kramdown
