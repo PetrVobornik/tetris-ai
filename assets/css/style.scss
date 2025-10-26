@@ -1,7 +1,12 @@
-@import "minima/skins/{{ site.minima.skin | default: 'classic' }}",
-        "minima/initialize";
+@import
+  "minima/skins/{{ site.minima.skin | default: 'classic' }}",
+  "minima/initialize";
 
-header.site-header, 
+/* 💡 vlastní úpravy musí být až PO importech */
 .site-header {
   display: none !important;
+}
+
+.page-content {
+  padding-top: 0;
 }
