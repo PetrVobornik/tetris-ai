@@ -2,11 +2,7 @@
   "minima/skins/{{ site.minima.skin | default: 'classic' }}",
   "minima/initialize";
 
-/* 💡 vlastní úpravy musí být až PO importech */
-.site-header {
+/* vlastní styl */
+header.site-header, .site-header {
   display: none !important;
-}
-
-.page-content {
-  padding-top: 0;
 }
