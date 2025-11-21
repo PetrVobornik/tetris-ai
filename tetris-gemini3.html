@@ -44,12 +44,8 @@
             border-radius: 24px;
             box-shadow: var(--shadow);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            max-width: 100vw;
-            height: 95vh;
-            /* Use most of the height */
-            max-height: 100vh;
-            overflow: hidden;
-            /* Prevent scroll */
+            /* max-width: 100vw;
+            max-height: 100vh; */
         }
 
         .game-board-wrapper {
@@ -58,26 +54,20 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-            /* Fix for border clipping: let container fit content */
-            width: auto;
-            height: auto;
-            max-height: 100%;
-            aspect-ratio: 1/2;
-            /* Enforce shape */
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-grow: 1;
+            
+            /* Responsive sizing */
+            aspect-ratio: 1 / 2;
+            height: min(85vh, calc((100vw - 26rem) * 2));
+            width: auto;
         }
 
         canvas {
             display: block;
-        }
-
-        #tetris {
             width: 100%;
             height: 100%;
-            object-fit: contain;
         }
 
         .sidebar {
@@ -236,6 +226,8 @@
             background-color: rgba(15, 23, 42, 0.5);
             border-radius: 4px;
             margin: 0 auto;
+            width: 100%;
+            height: auto;
         }
 
         /* Controls Modal Styles */
@@ -308,8 +300,7 @@
         @media (max-width: 768px) {
             body {
                 align-items: flex-start;
-                padding-top: 0;
-                /* Remove top padding to maximize space */
+                padding-top: 10px;
             }
 
             .game-container {
@@ -317,27 +308,22 @@
                 align-items: center;
                 padding: 0.5rem;
                 gap: 0.5rem;
-                height: 100vh;
-                max-height: 100vh;
-                justify-content: space-between;
-                /* Distribute space */
+                /* max-height: 98vh; */
             }
 
             .game-board-wrapper {
                 order: 2;
-                padding: 0;
-                /* Remove padding inside wrapper */
-                flex-grow: 1;
-                /* Take available space */
-                max-height: none;
-                /* Let flexbox control height */
+                padding: 5px;
+                
+                /* Mobile sizing */
+                height: min(calc(100vh - 13rem), calc((100vw - 2rem) * 2));
                 width: auto;
-                /* Let aspect ratio control width */
+                aspect-ratio: 1 / 2;
             }
 
             #tetris {
                 height: 100%;
-                width: 100%;
+                width: auto;
             }
 
             .sidebar {
@@ -346,8 +332,6 @@
                 flex-direction: row;
                 justify-content: center;
                 gap: 0.5rem;
-                flex-shrink: 1;
-                /* Allow sidebars to shrink if needed */
             }
 
             .sidebar-left {
@@ -361,26 +345,22 @@
             }
 
             .info-panel {
-                padding: 0.2rem;
-                /* Reduce padding */
-                min-width: 50px;
-                /* Allow smaller width */
+                padding: 0.3rem;
+                min-width: 60px;
             }
 
             .info-panel h2 {
                 font-size: 0.6rem;
-                margin-bottom: 0.1rem;
+                margin-bottom: 0.2rem;
             }
 
             .score-value {
-                font-size: 0.9rem;
-                /* Smaller font */
+                font-size: 1rem;
             }
 
             .small-canvas {
-                width: 50px;
-                /* Smaller canvases */
-                height: 50px;
+                width: 60px;
+                height: 60px;
             }
 
             h1 {
@@ -398,29 +378,24 @@
             #controlsBtn {
                 display: block;
                 margin-top: 0;
-                padding: 0.3rem;
-                /* Smaller padding */
-                font-size: 0.7rem;
+                padding: 0.5rem;
+                font-size: 0.8rem;
                 width: auto;
-                min-width: 60px;
+                min-width: 80px;
             }
 
             #startBtn {
                 width: auto;
-                padding: 0.3rem 0.8rem;
-                font-size: 0.8rem;
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
                 white-space: nowrap;
             }
         }
 
         /* Very small screens */
         @media (max-height: 700px) {
-
-            /* The aspect-ratio and flex-grow logic above should handle this automatically,
-               but we can ensure the container takes full height */
-            .game-container {
-                height: 100vh;
-                padding: 2px;
+            .game-board-wrapper {
+                /* max-height: 55vh; */
             }
         }
     </style>
@@ -452,7 +427,8 @@
             <div id="gameOver" class="overlay">
                 <div class="overlay-title">GAME OVER</div>
                 <button id="restartBtn" class="btn btn-primary" style="width: auto; padding: 0.8rem 2rem;"
-                    tabindex="-1">Try Again</button>
+                    tabindex="-1">Try
+                    Again</button>
             </div>
 
             <!-- Pause Overlay -->
