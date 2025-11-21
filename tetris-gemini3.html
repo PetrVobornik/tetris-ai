@@ -45,7 +45,11 @@
             box-shadow: var(--shadow);
             border: 1px solid rgba(255, 255, 255, 0.05);
             max-width: 100vw;
+            height: 95vh;
+            /* Use most of the height */
             max-height: 100vh;
+            overflow: hidden;
+            /* Prevent scroll */
         }
 
         .game-board-wrapper {
@@ -55,15 +59,25 @@
             overflow: hidden;
             box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
             /* Fix for border clipping: let container fit content */
-            width: fit-content;
+            width: auto;
+            height: auto;
+            max-height: 100%;
+            aspect-ratio: 1/2;
+            /* Enforce shape */
             display: flex;
             justify-content: center;
             align-items: center;
-            max-height: 80vh;
+            flex-grow: 1;
         }
 
         canvas {
             display: block;
+        }
+
+        #tetris {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .sidebar {
@@ -294,7 +308,8 @@
         @media (max-width: 768px) {
             body {
                 align-items: flex-start;
-                padding-top: 10px;
+                padding-top: 0;
+                /* Remove top padding to maximize space */
             }
 
             .game-container {
@@ -302,19 +317,27 @@
                 align-items: center;
                 padding: 0.5rem;
                 gap: 0.5rem;
-                max-height: 98vh;
+                height: 100vh;
+                max-height: 100vh;
+                justify-content: space-between;
+                /* Distribute space */
             }
 
             .game-board-wrapper {
                 order: 2;
-                padding: 5px;
-                max-height: 60vh;
-                /* Removed aspect-ratio to fix clipping */
+                padding: 0;
+                /* Remove padding inside wrapper */
+                flex-grow: 1;
+                /* Take available space */
+                max-height: none;
+                /* Let flexbox control height */
+                width: auto;
+                /* Let aspect ratio control width */
             }
 
             #tetris {
                 height: 100%;
-                width: auto;
+                width: 100%;
             }
 
             .sidebar {
@@ -323,6 +346,8 @@
                 flex-direction: row;
                 justify-content: center;
                 gap: 0.5rem;
+                flex-shrink: 1;
+                /* Allow sidebars to shrink if needed */
             }
 
             .sidebar-left {
@@ -336,22 +361,26 @@
             }
 
             .info-panel {
-                padding: 0.3rem;
-                min-width: 60px;
+                padding: 0.2rem;
+                /* Reduce padding */
+                min-width: 50px;
+                /* Allow smaller width */
             }
 
             .info-panel h2 {
                 font-size: 0.6rem;
-                margin-bottom: 0.2rem;
+                margin-bottom: 0.1rem;
             }
 
             .score-value {
-                font-size: 1rem;
+                font-size: 0.9rem;
+                /* Smaller font */
             }
 
             .small-canvas {
-                width: 60px;
-                height: 60px;
+                width: 50px;
+                /* Smaller canvases */
+                height: 50px;
             }
 
             h1 {
@@ -369,24 +398,29 @@
             #controlsBtn {
                 display: block;
                 margin-top: 0;
-                padding: 0.5rem;
-                font-size: 0.8rem;
+                padding: 0.3rem;
+                /* Smaller padding */
+                font-size: 0.7rem;
                 width: auto;
-                min-width: 80px;
+                min-width: 60px;
             }
 
             #startBtn {
                 width: auto;
-                padding: 0.5rem 1rem;
-                font-size: 0.9rem;
+                padding: 0.3rem 0.8rem;
+                font-size: 0.8rem;
                 white-space: nowrap;
             }
         }
 
         /* Very small screens */
         @media (max-height: 700px) {
-            .game-board-wrapper {
-                max-height: 55vh;
+
+            /* The aspect-ratio and flex-grow logic above should handle this automatically,
+               but we can ensure the container takes full height */
+            .game-container {
+                height: 100vh;
+                padding: 2px;
             }
         }
     </style>
