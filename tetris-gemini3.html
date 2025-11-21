@@ -153,6 +153,21 @@
             transform: translateY(0);
         }
 
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-danger:active {
+            transform: translateY(0);
+        }
+
         .overlay {
             position: absolute;
             top: 0;
@@ -192,43 +207,73 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                align-items: flex-start;
+                padding-top: 10px;
+            }
+
             .game-container {
                 flex-direction: column;
                 align-items: center;
                 padding: 0.5rem;
-                gap: 1rem;
+                gap: 0.5rem;
+                max-height: 98vh;
             }
 
             .game-board-wrapper {
-                order: 1;
+                order: 2;
+                padding: 5px;
+                /* Scale down board if needed to fit height */
+                max-height: 60vh;
+                aspect-ratio: 1/2;
+            }
+
+            #tetris {
+                height: 100%;
+                width: auto;
+            }
+
+            .sidebar {
+                min-width: auto;
+                width: 100%;
+                flex-direction: row;
+                justify-content: center;
+                gap: 0.5rem;
             }
 
             .sidebar-left {
-                order: 2;
-                width: 100%;
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 0.5rem;
+                order: 1;
+                flex-wrap: nowrap;
             }
 
             .sidebar-right {
                 order: 3;
-                width: 100%;
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 0.5rem;
+                flex-wrap: nowrap;
             }
 
             .info-panel {
-                flex: 1;
-                min-width: 100px;
-                padding: 0.5rem;
+                padding: 0.3rem;
+                min-width: 60px;
             }
 
             .info-panel h2 {
-                font-size: 0.7rem;
+                font-size: 0.6rem;
+                margin-bottom: 0.2rem;
+            }
+
+            .score-value {
+                font-size: 1rem;
+            }
+
+            .small-canvas {
+                width: 60px;
+                height: 60px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                display: none;
+                /* Hide title on mobile to save space */
             }
 
             .controls-info {
@@ -237,7 +282,16 @@
 
             #startBtn {
                 width: auto;
-                min-width: 120px;
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+                white-space: nowrap;
+            }
+        }
+
+        /* Very small screens */
+        @media (max-height: 700px) {
+            .game-board-wrapper {
+                max-height: 55vh;
             }
         }
     </style>
@@ -276,7 +330,9 @@
             <!-- Pause Overlay -->
             <div id="pauseScreen" class="overlay">
                 <div class="overlay-title">PAUSED</div>
-                <div style="color: #cbd5e1; margin-bottom: 1rem;">Press 'P' to resume</div>
+                <button id="resumeBtn" class="btn btn-primary"
+                    style="width: auto; padding: 0.8rem 2rem; margin-bottom: 1rem;" tabindex="-1">Resume</button>
+                <div style="color: #cbd5e1; font-size: 0.9rem;">Press 'P' to resume</div>
             </div>
         </div>
 
@@ -322,6 +378,7 @@
         const levelElement = document.getElementById('level');
         const startBtn = document.getElementById('startBtn');
         const restartBtn = document.getElementById('restartBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
         const gameOverOverlay = document.getElementById('gameOver');
         const pauseOverlay = document.getElementById('pauseScreen');
 
@@ -773,9 +830,17 @@
             if (isPaused) {
                 pauseOverlay.classList.add('visible');
                 cancelAnimationFrame(animationId);
+                // Update Start Button to Restart (Red)
+                startBtn.innerText = "Restart";
+                startBtn.classList.remove('btn-primary');
+                startBtn.classList.add('btn-danger');
             } else {
                 pauseOverlay.classList.remove('visible');
                 drop();
+                // Update Start Button to Pause (Blue)
+                startBtn.innerText = "Pause";
+                startBtn.classList.remove('btn-danger');
+                startBtn.classList.add('btn-primary');
             }
         }
 
@@ -822,6 +887,11 @@
             gameOverOverlay.classList.remove('visible');
             pauseOverlay.classList.remove('visible');
 
+            // Reset Start Button to Pause state
+            startBtn.innerText = "Pause";
+            startBtn.classList.remove('btn-danger');
+            startBtn.classList.add('btn-primary');
+
             holdPiece = null;
             canHold = true;
             drawHoldPiece();
@@ -839,14 +909,20 @@
         startBtn.addEventListener('click', () => {
             startBtn.blur(); // Remove focus immediately
             if (isPaused && !isGameOver && p) {
-                // Resume
-                togglePause();
-                startBtn.innerText = "Restart";
-            } else {
-                // Start/Restart
+                // If paused, this button acts as Restart
                 initGame();
-                startBtn.innerText = "Restart";
+            } else if (!p || isGameOver) {
+                // Start new game
+                initGame();
+            } else {
+                // Game is running, act as Pause
+                togglePause();
             }
+        });
+
+        resumeBtn.addEventListener('click', () => {
+            resumeBtn.blur();
+            togglePause();
         });
 
         restartBtn.addEventListener('click', () => {
