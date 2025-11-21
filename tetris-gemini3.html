@@ -3,39 +3,37 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Tetris</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tetris</title>
     <style>
         :root {
             --bg-color: #0f172a;
-            --panel-bg: rgba(30, 41, 59, 0.7);
+            --panel-bg: #1e293b;
             --accent-color: #38bdf8;
-            --text-color: #f1f5f9;
-            --grid-line: rgba(255, 255, 255, 0.05);
-            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            --text-color: #e2e8f0;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            touch-action: none;
+            /* Prevent default touch actions like scrolling */
+            user-select: none;
+            /* Prevent text selection */
+            -webkit-user-select: none;
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
-            background-image:
-                radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.1) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 20%);
         }
 
         .game-container {
@@ -43,48 +41,43 @@
             gap: 2rem;
             padding: 2rem;
             background: var(--panel-bg);
-            backdrop-filter: blur(12px);
             border-radius: 24px;
             box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 1000px;
-            width: 100%;
-            justify-content: center;
-            align-items: flex-start;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 100vw;
+            max-height: 100vh;
         }
 
         .game-board-wrapper {
             position: relative;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
         }
 
         canvas {
             display: block;
-            background-color: rgba(15, 23, 42, 0.8);
-            border-radius: 4px;
         }
 
         .sidebar {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
-            min-width: 200px;
+            gap: 1.5rem;
+            min-width: 140px;
         }
 
         .info-panel {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(15, 23, 42, 0.5);
             padding: 1rem;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
             text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         h1 {
             font-size: 2.5rem;
-            font-weight: 700;
+            font-weight: 800;
             margin-bottom: 0.5rem;
             background: linear-gradient(135deg, #38bdf8 0%, #a855f7 100%);
             -webkit-background-clip: text;
@@ -294,6 +287,101 @@
                 max-height: 55vh;
             }
         }
+
+        /* Controls Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 90%;
+            width: 400px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--accent-color);
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .control-group h3 {
+            font-size: 1rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.2rem;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            margin-top: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .btn-close {
+            background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+            color: white;
+            margin-top: 1rem;
+            width: auto;
+            padding: 0.8rem 2rem;
+        }
+
+        #controlsBtn {
+            display: none;
+            /* Hidden on desktop by default if sidebar is visible */
+        }
+
+        @media (max-width: 768px) {
+            #controlsBtn {
+                display: block;
+                margin-top: 0.5rem;
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 
@@ -307,13 +395,13 @@
                 <canvas id="next" width="120" height="120" class="small-canvas"></canvas>
             </div>
 
-            <div class="info-panel">
+            <div class="info-panel" id="holdPanel" style="cursor: pointer;">
                 <h2>Hold</h2>
                 <canvas id="hold" width="120" height="120" class="small-canvas"></canvas>
-                <div style="margin-top: 5px; font-size: 0.8rem; color: #94a3b8;">Press 'C'</div>
             </div>
 
             <button id="startBtn" class="btn btn-primary" tabindex="-1">Start Game</button>
+            <button id="controlsBtn" class="btn btn-secondary" tabindex="-1">Controls</button>
         </div>
 
         <!-- Main Game Board -->
@@ -366,6 +454,34 @@
         </div>
     </div>
 
+    <!-- Controls Modal -->
+    <div id="controlsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">Controls</div>
+
+            <div class="control-group">
+                <h3>Keyboard</h3>
+                <div class="control-item"><span>Move</span> <span>← →</span></div>
+                <div class="control-item"><span>Rotate</span> <span>↑</span></div>
+                <div class="control-item"><span>Soft Drop</span> <span>↓</span></div>
+                <div class="control-item"><span>Hard Drop</span> <span>Space</span></div>
+                <div class="control-item"><span>Hold</span> <span>C</span></div>
+                <div class="control-item"><span>Pause</span> <span>P</span></div>
+            </div>
+
+            <div class="control-group">
+                <h3>Touch</h3>
+                <div class="control-item"><span>Move</span> <span>Drag Left/Right</span></div>
+                <div class="control-item"><span>Rotate</span> <span>Tap</span></div>
+                <div class="control-item"><span>Soft Drop</span> <span>Swipe Down</span></div>
+                <div class="control-item"><span>Hard Drop</span> <span>Swipe Up</span></div>
+                <div class="control-item"><span>Hold</span> <span>Tap Hold Box</span></div>
+            </div>
+
+            <button id="closeControlsBtn" class="btn btn-close">Close</button>
+        </div>
+    </div>
+
     <script>
         const canvas = document.getElementById('tetris');
         const context = canvas.getContext('2d');
@@ -379,6 +495,11 @@
         const startBtn = document.getElementById('startBtn');
         const restartBtn = document.getElementById('restartBtn');
         const resumeBtn = document.getElementById('resumeBtn');
+        const controlsBtn = document.getElementById('controlsBtn');
+        const closeControlsBtn = document.getElementById('closeControlsBtn');
+        const controlsModal = document.getElementById('controlsModal');
+        const holdPanel = document.getElementById('holdPanel');
+
         const gameOverOverlay = document.getElementById('gameOver');
         const pauseOverlay = document.getElementById('pauseScreen');
 
@@ -930,6 +1051,25 @@
             initGame();
         });
 
+        // Controls Modal Logic
+        controlsBtn.addEventListener('click', () => {
+            controlsModal.classList.add('visible');
+            if (!isPaused && !isGameOver && p) {
+                togglePause(); // Auto pause when opening controls
+            }
+        });
+
+        closeControlsBtn.addEventListener('click', () => {
+            controlsModal.classList.remove('visible');
+        });
+
+        // Hold Click Logic
+        holdPanel.addEventListener('click', () => {
+            if (!isPaused && !isGameOver) {
+                hold();
+            }
+        });
+
         // Control function
         function CONTROL(event) {
             if (isGameOver || isPaused) {
@@ -966,8 +1106,69 @@
         let touchStartY = 0;
         let touchEndX = 0;
         let touchEndY = 0;
+        let initialPieceX = 0;
+        let isDragging = false;
 
-        function handleGesture() {
+        document.addEventListener('touchstart', function (event) {
+            if (isPaused || isGameOver) return;
+            touchStartX = event.changedTouches[0].screenX;
+            touchStartY = event.changedTouches[0].screenY;
+            if (p) {
+                initialPieceX = p.x;
+            }
+            isDragging = false;
+        }, false);
+
+        document.addEventListener('touchmove', function (event) {
+            if (event.target.tagName !== 'BUTTON') {
+                event.preventDefault(); // Prevent scrolling
+            }
+
+            if (isPaused || isGameOver || !p) return;
+
+            let touchX = event.changedTouches[0].screenX;
+            let touchY = event.changedTouches[0].screenY;
+
+            let diffX = touchX - touchStartX;
+            let diffY = touchY - touchStartY;
+
+            // Visual Square Size approximation (Canvas width / Columns)
+            const rect = canvas.getBoundingClientRect();
+            const visualSQ = rect.width / COL;
+
+            // Horizontal Dragging (1:1 tracking)
+            if (!isDragging) {
+                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+                    isDragging = true;
+                }
+            }
+
+            if (isDragging) {
+                // Calculate target column based on initial position + drag distance
+                let colOffset = Math.round(diffX / visualSQ);
+                let targetX = initialPieceX + colOffset;
+
+                // Move piece towards targetX
+                while (p.x < targetX) {
+                    let prevX = p.x;
+                    p.moveRight();
+                    if (p.x === prevX) break; // Blocked
+                }
+                while (p.x > targetX) {
+                    let prevX = p.x;
+                    p.moveLeft();
+                    if (p.x === prevX) break; // Blocked
+                }
+            }
+
+        }, { passive: false });
+
+        document.addEventListener('touchend', function (event) {
+            touchEndX = event.changedTouches[0].screenX;
+            touchEndY = event.changedTouches[0].screenY;
+
+            if (isPaused || isGameOver) return;
+
             const diffX = touchEndX - touchStartX;
             const diffY = touchEndY - touchStartY;
             const absDiffX = Math.abs(diffX);
@@ -976,23 +1177,13 @@
             // Threshold for swipe vs tap
             const threshold = 30;
 
-            if (absDiffX < threshold && absDiffY < threshold) {
+            if (!isDragging && absDiffX < threshold && absDiffY < threshold) {
                 // Tap - Rotate
-                if (!isPaused && !isGameOver) {
-                    p.rotate();
-                    dropStart = Date.now();
-                }
-            } else {
-                if (absDiffX > absDiffY) {
-                    // Horizontal Swipe
-                    if (diffX > 0) {
-                        p.moveRight();
-                    } else {
-                        p.moveLeft();
-                    }
-                    dropStart = Date.now();
-                } else {
-                    // Vertical Swipe
+                p.rotate();
+                dropStart = Date.now();
+            } else if (!isDragging) {
+                // If we weren't dragging horizontally, check for vertical swipes
+                if (absDiffY > absDiffX && absDiffY > threshold) {
                     if (diffY > 0) {
                         // Down - Soft Drop
                         p.moveDown();
@@ -1002,26 +1193,9 @@
                     }
                 }
             }
-        }
 
-        document.addEventListener('touchstart', function (event) {
-            touchStartX = event.changedTouches[0].screenX;
-            touchStartY = event.changedTouches[0].screenY;
+            isDragging = false;
         }, false);
-
-        document.addEventListener('touchend', function (event) {
-            touchEndX = event.changedTouches[0].screenX;
-            touchEndY = event.changedTouches[0].screenY;
-            if (!isPaused && !isGameOver) {
-                handleGesture();
-            }
-        }, false);
-
-        document.addEventListener('touchmove', function (e) {
-            if (e.target.tagName !== 'BUTTON') {
-                e.preventDefault(); // Prevent scrolling
-            }
-        }, { passive: false });
 
         // Initial draw
         createBoard();
